@@ -78,4 +78,94 @@ https://kubernetes.io/ru/docs/tasks/tools/install-minikube/
 `kubectl delete -f k8s/`    удаляем все. Удаляются только то, что находится в конфигах в папке k8s
 
 
+###Ресурсы
+#####Пример запроса ресурсов (memory cpu)
+````
+spec:
+containers:
+- name: demo
+  image: cloudnatived/demo:hello
+  ports:
+- containerPort: 8888
+  resources:
+  requests:
+  memory: "10Mi"
+  cpu: "100m"
+````
 
+
+###Проверки работоспособности
+#####HTTP контрейнер
+````
+livenessProbe:
+    httpGet:
+        path: /healthz
+        port: 8888
+    initialDelaySeconds: 3
+    periodSeconds: 3
+````
+
+#####проверка по TCP
+````
+livenessProbe:
+    tcpSocket:
+        port: 8888
+````
+
+#####Выполнение произвольной команды (должен вернуть нулевой статус)
+````
+readinessProbe:
+    exec:
+        command:
+        - cat
+        - /tmp/healthy
+````
+
+#####grpc-health-probe для проверки приложений на gRPC
+
+
+###Проверки готовности
+
+#####в данном случае полностью аналогично проверки работоспособности
+````
+readinessProbe:
+    httpGet:
+        path: /healthz
+        port: 8888
+    initialDelaySeconds: 3
+    periodSeconds: 3
+````
+
+#####Проверки готовности на основе файла
+Приложение может создать файл когда будет готово, а кубернетис проверить это через `exec`
+
+#####Поле minReadySeconds
+
+#####Ресурс PodDisruptionBudget
+можно указать, сколько pod-оболочек заданного приложения допустимо к потере в любой момент времени.
+######minAvailable
+минимальное количество подов, которе оставит кубернетис при выселениее
+````
+apiVersion: policy/v1beta1
+kind: PodDisruptionBudget
+metadata:
+	name: demo-pdb
+spec:
+	minAvailable: 3
+	selector:
+		matchLabels:
+ 			app: demo
+````
+######maxUnavailable
+максимальное разрешенное количество для выселения
+````
+apiVersion: policy/v1beta1
+kind: PodDisruptionBudget
+metadata:
+	name: demo-pdb
+spec:
+	maxUnavailable: 10%
+	selector:
+	matchLabels:
+		app: demo
+````
